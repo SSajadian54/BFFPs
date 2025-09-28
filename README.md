@@ -14,5 +14,5 @@ There are some files contain the results from performing simulations.
 The results from this research as a manuscript were submitted.  
 
 In the case that you want to know about these codes please contact me, I will be happy to help.  
-My email addess: sedighe.sdajadian@gmail.com
+My email addess: sedighe.sajadian@gmail.com
  
