@@ -9,7 +9,7 @@
 
 using namespace std;
 
-const int    Num=2000;
+const int    Num=20000;
 const double MaxD=20.0;///kpc
 const double RA=180.0/M_PI;
 const double pi= M_PI;
@@ -44,7 +44,7 @@ const double corr[8]={1.0,7.9/4.48419, 6.2/3.52112, 4.0/2.27237, 5.8/3.29525, 4.
 const int    M=5;///number of filters  V,I,K,H,W149
 const double satu[M]={12.0, 12.0, 13.0, 13.0, 14.8}; //it should be changed
 const double thre[M]={19.5, 20.5, 21.0, 21.0, 26.0};
-const double FWHM[M]={0.22, 0.22, 0.22, 0.22 , 0.22};//3*pixel_size (0.11") of WFIRST, VIKH W149
+const double FWHM[M]={0.33, 0.33, 0.33, 0.33 , 0.33};//3*pixel_size (0.11") of WFIRST, VIKH W149
 const double AlAv[M]={1.009,0.600,0.118,0.184,0.225};///From besancon model[VIKH W149]
 const double sigma[M]={0.022,0.022,0.02,0.025,0.025};//MOAاستفاده از مقاله کاردلی
 const double cadence=double(15.16/60.0/24.0);//W149_cadence in  day
@@ -209,6 +209,7 @@ int main()
     double fr, fq; 
     double mu=0.23, sig=0.42;   
     double finter=0.0, fwide=0.0, fnum=0.0;  
+    double Magn, mus, texp, mzp, deno, SNR;  
 
 
     for(int j1=0; j1<nm; ++j1){ 
@@ -253,10 +254,27 @@ int main()
     }while(s.magb[4]>thre[4] or s.magb[4]<satu[4] or test>s.blend[4] or l.tE<0.0001 or l.tE>100.0 or s.ros>99.9);
     optical_depth(s);
 
-    if(l.con>2)      fwide+=1.0;
-    else if(l.con>1) finter+=1.0;
+    if(l.con>2)       fwide+=1.0;
+    else if(l.con>1)  finter+=1.0;
     fnum+=1.0;  
     counter+=1;
+    
+    
+
+    
+    
+    
+    Magn=vbb.ESPLMag2(l.u0, s.ros);
+    mus =21.48;  
+    texp=46.8;  
+    SNR =0.0; 
+    mzp =27.6; 
+    deno= double(s.Fluxb[4] + M_PI*pow(FWHM[4]*0.5,2.0)*pow(10.0,-0.4*mus) + (Magn-1.0)*pow(10.0,-0.4*s.Map[4]));
+    SNR = double(sqrt(texp)*Magn*pow(10.0, -0.4*s.Map[4]+ 0.2*mzp));
+    SNR = double(SNR/sqrt(deno));
+    
+    
+    
 
 
 
