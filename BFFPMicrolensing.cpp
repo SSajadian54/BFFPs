@@ -9,14 +9,14 @@
 
 using namespace std;
 
-const int    Num=2000;
+const int    Num=20000;
 const double MaxD=20.0;///kpc
-const double RA=180.0/M_PI;
-const double pi= M_PI;
+const double RA  =180.0/M_PI;
+const double pi  = M_PI;
 const double step=MaxD/(double)Num/1.0;///step in kpc
-const double Hp=6.62607004*pow(10.0,-34);
-const double KP=3.08568025*pow(10.,19); // in meter.
-const double G= 6.67384*pow(10.,-11.0);// in [m^3/s^2*kg].
+const double Hp  =6.62607004*pow(10.0,-34);
+const double KP  =3.08568025*pow(10.,19); // in meter.
+const double G   = 6.67384*pow(10.,-11.0);// in [m^3/s^2*kg].
 const double velocity=299792458.0;//velosity of light
 const double Msun=1.98892*pow(10.,30); //in [kg].
 const double Rsun= 6.957*pow(10.0,8.0); ///solar radius [meter]
@@ -47,7 +47,7 @@ const double thre[M]={19.5, 20.5, 21.0, 21.0, 26.0};
 const double FWHM[M]={0.22, 0.22, 0.22, 0.22 , 0.22};//3*pixel_size (0.11") of WFIRST, VIKH W149
 const double AlAv[M]={1.009,0.600,0.118,0.184,0.225};///From besancon model[VIKH W149]
 const double sigma[M]={0.022,0.022,0.02,0.025,0.025};//MOAاستفاده از مقاله کاردلی
-const double cadence=double(15.16/60.0/24.0);//W149_cadence in  day
+const double cadence=double(10.0/60.0/24.0);//W149_cadence in  day
 const double Tobs=double(62.0); 
 
 ////=======================================================
@@ -93,8 +93,8 @@ struct extinc{
    double Aks;
 };
 struct cmdw{
-    int number[70];   
-    int count[70];   
+    int    number[70];   
+    int    count[70];   
     double MJ, MH; 
     double Age1[YZ]; double B1[YZ];  double M1[YZ];   double mm1[YZ];
     double Age2[YZ]; double B2[YZ];  double M2[YZ];   double mm2[YZ];
@@ -157,7 +157,7 @@ int main()
     FILE* data; 
     FILE* model; 
     char filnam1[40], filnam2[40]; 
-    fil1=fopen("./files/MONT1/param2.dat","w");
+    fil1=fopen("./files/MONT1/param3.dat","w");
     fclose(fil1); 
     
 
@@ -198,34 +198,37 @@ int main()
     
     
     read_cmd(cm, w);
-    int    li, nm=14, count=50000;
+    int    li, nm=14, count=0;
     double test, chiB, chiPL1, chiPL2, chiR;  
     double tim, xcent, ycent, xcent2, u1, u2, APL1, APL2, ABin; 
-    double sigm, siga, flac, timw, mtot;    
+    double sigm, siga, flac, timw;    
+    double mtot[nm]={-1.75,-1.5,-1.25, -1.0, -0.75,-0.5,-0.25,0.0,0.25,0.5, 0.75, 1.0, 1.5, 2.0};//14
+    
 
 
 
-    for(int j1=10; j1<nm; ++j1){ 
-    //mtot=double(-2.5+j1*5.0/nm); 
+    for(int j1=0; j1<nm; ++j1){ 
+    l.Mtot=pow(10.0,mtot[j1])*Mearth; //kg
+    for(int icon=1; icon<=1000; ++icon){
     
-    if(j1==10) mtot= -1.75; 
-    if(j1==11) mtot= -1.25;  
-    if(j1==12) mtot= -0.25; 
-    if(j1==13) mtot= +0.25; 
     
-    l.Mtot=pow(10.0,mtot)*Mearth;  
-    for(int icon=1; icon<=5000; ++icon){
-    count+=1;     
     
-       
+    
+    count+=1;        
     LineOfSight(s);  
     Disk_model( s);
     if(int(Extinction(ex,s))==1){
+    
+    l.semi=RandR(-2.25 , 1.5);  
+    l.semi=pow(10.0 , l.semi)*AU; //[meter] 
+
+    
     do{
     func_source(s,cm,ex);
     func_lens(l,s,cm,ex);
     test=RandR(0.0,1.0);
     }while(s.magb[4]>thre[4] or s.magb[4]<satu[4] or test>s.blend[4] or l.tE<0.0001 or l.tE>120.0 or s.ros>99.9);
+    
     optical_depth(s);
     
 //#############################################################################
@@ -242,32 +245,37 @@ int main()
     if(s.ros<1.0){
     l.pt1=double(-3.5*l.tE+l.t0);  
     l.pt2=double(+3.5*l.tE+l.t0); }
-    
-    else {
+    else{
     l.pt1=double(-3.5*l.tE*s.ros+l.t0);  
-    l.pt2=double(+3.5*l.tE*s.ros+l.t0);}
+    l.pt2=double(+3.5*l.tE*s.ros+l.t0);} 
     l.dt=double((l.pt2-l.pt1)/800.0);
-    
     if(l.dt>cadence){
     cout<<"Error dt>cadence: "<<l.dt<<"\t cadence :  "<<cadence<<endl;
     l.dt=double(cadence/3.1);}
+   
+   
+   
+   
     
     for(tim=l.pt1; tim<l.pt2; tim+=l.dt){
-    xcent= double((tim-l.t0)/l.tE * cos(l.ksi) -l.u0*sin(l.ksi) );
-    ycent= double((tim-l.t0)/l.tE * sin(l.ksi) +l.u0*cos(l.ksi) );
+    xcent= double( (tim-l.t0)/l.tE * cos(l.ksi) -l.u0*sin(l.ksi) );
+    ycent= double( (tim-l.t0)/l.tE * sin(l.ksi) +l.u0*cos(l.ksi) );
     xcent2=double(xcent + fabs(l.dis*l.q/(1.0+l.q)) ); 
     u1=sqrt(xcent2*xcent2+ycent*ycent);
     u2=sqrt(xcent*xcent + ycent*ycent);
     APL1=vbb.ESPLMag2(u1, s.ros) ;
     APL2=vbb.ESPLMag2(u2, s.ros); 
     
-    if(l.dis<10.0){
+    
+    if(l.dis<10.0 and l.dis>0.02){
     ABin=vbb.BinaryMag2(l.dis,l.q, xcent, ycent, s.ros);}
+    
     else ABin= APL2;
     
     APL1=double(s.blend[4]*APL1+1.0-s.blend[4]);
     APL2=double(s.blend[4]*APL2+1.0-s.blend[4]);
     ABin=double(s.blend[4]*ABin+1.0-s.blend[4]);
+    
     
     if(APL1<0.999 or APL2<0.999 or ABin<0.999 or s.blend[4]<0.0 or s.blend[4]>1.0 or s.ros<0.0 or l.dis<0.0 or l.q>1.0 or l.q<0.0){
     cout<<"ERoRR APL1: "<<APL1<<"\t APL2:  "<<APL2<<"\t ABin:  "<<ABin<<endl;
@@ -276,12 +284,13 @@ int main()
     cout<<"xcent2:  "<<xcent2<<"\t u1:  "<<u1<<"\t u2:  "<<u2<<endl;
     int rre; cin>>rre;}
     
-    fprintf(model,"%.4lf   %.5lf   %.5lf   %.5lf  %.4lf  %.4lf\n",tim, APL1, APL2, ABin, xcent,ycent);
+    
+    fprintf(model,"%.4lf   %.5lf   %.5lf   %.5lf   %.4lf   %.4lf\n",tim, APL1, APL2, ABin, xcent, ycent);//model light curve
     if(tim>=0.0 and tim<=Tobs){
     timw+=l.dt; 
     if(timw>cadence){
     timw=timw-cadence;  
-    sigm=ErrorRoman(l,double(s.magb[4]-2.5*log10(ABin)) );
+    sigm=ErrorRoman(l , double(s.magb[4]-2.5*log10(ABin)) );
     siga=fabs(pow(10.0,-0.4*sigm)-1.0)*ABin;
     flac =RandN(siga,2.0);
     chiPL1+= (ABin+flac-APL1)*(ABin+flac-APL1)/siga/siga;//ESPL1 chi2
@@ -294,18 +303,18 @@ int main()
     
     
 //#############################################################################
-    fil1=fopen("./files/MONT1/param2.dat","a+");
+    fil1=fopen("./files/MONT1/param3.dat","a+");
     fprintf(fil1,
     "%d  %d   %.5lf  %d  %.8lf  %.7lf  %.5lf  %.5lf  %.5lf    "//9
     "%d  %d  %.7lf   %.7lf  %.7lf  %.7lf  %.4lf  %.2lf   %.4lf  %.4lf  %.4lf   "//20
     "%.5lf  %.8lf  %.5lf   %.7lf %.8lf  %.9lf  %.7lf   %.8lf   "  //28
     "%.6lf  %.5lf  %.5lf  %.9lf  %.6lf  %.6lf  %.5lf  %.5lf  %.5lf  %.5lf  %.5lf  %.5lf   "//40
-    "%.5lf %.5lf %.2lf %.2lf  %.4lf  %.4lf  %.6lf  %.5lf  %.5lf  %.5lf  %.5lf  %.5lf  %d\n",//53
-    count, j1, mtot ,l.struc, l.Ml/Mearth, l.Dl, l.vl, s.mul1, s.mul2, //9
+    "%.5lf %.5lf %.2lf %.2lf  %.4lf  %.4lf  %.6lf  %.5lf  %.5lf  %.5lf  %.5lf  %.5lf  %d  %d\n",//53+4
+    count, j1, mtot[j1] ,l.struc, l.Ml/Mearth, l.Dl, l.vl, s.mul1, s.mul2, //9
     s.struc, s.cl, s.mass, s.Ds, s.Tstar, s.Rstar, s.logl, s.type, l.vs, s.mus1, s.mus2,//20
     l.q, l.dis, log10(l.peri), log10(l.semi/AU),l.tE, l.RE/AU, l.mul*30.0, l.Vt, //28
     l.u0, l.ksi*RA, l.piE, l.tetE, s.opd*1.0e6, s.ros, s.Mab[1],s.Mab[4],s.Map[1],s.Map[4],s.magb[1],s.magb[4],//40
-    s.blend[1],s.blend[4],s.Nblend[1],s.Nblend[4],s.Ai[1],s.Ai[4],l.t0,chiPL1, chiPL2, chiR, chiB, l.inc, l.con);///53
+    s.blend[1],s.blend[4],s.Nblend[1],s.Nblend[4],s.Ai[1],s.Ai[4],l.t0,chiPL1, chiPL2, chiR, chiB, l.inc, l.con, icon);///53+1
     fclose(fil1);
     if(int(count)%1==0){
     cout<<"============================================================="<<endl;
@@ -332,6 +341,8 @@ int main()
     cout<<"==============================================================="<<endl;}
     }//end of extinction
     }//end of icon
+    
+    
     }//end of mass_tot loop
     return(0);
 }
@@ -417,8 +428,8 @@ void func_source(source & s, CMD & cm, extinc & ex)
 
 
     for(int i=0; i<M; ++i){
-    s.Fluxb[i]=s.Nblend[i]=0.0;
-    s.Nblend[i]=s.Nstart*pow(FWHM[i]*0.5,2)*M_PI/(3600.0*3600.0);
+    s.Fluxb[i] = s.Nblend[i]=0.0;
+    s.Nblend[i]= s.Nstart*pow(FWHM[i]*0.5,2)*M_PI/(3600.0*3600.0);
     if(s.Nblend[i]<=1.0)  s.Nblend[i]=1.0;
     if(s.Nblend[i]>maxnb) maxnb=s.Nblend[i];}
     for(int i=0; i<M; ++i){s.magb[i]=s.Ai[i]=s.Map[i]=s.Mab[i]=0.0;}
@@ -503,6 +514,8 @@ else if (rf<=(s.rho_disk[nums]+s.rho_bulge[nums]+s.rho_ThD[nums]+ s.rho_halo[num
     if(cm.mass_h[num]<0.0 or int(cm.cl_h[num])>5 or cm.Teff_h[num]<0.0 or cm.type_h[num]>8.0 or cm.mass_h[num]>10000.0){
     cout<<"Error(Galactic halo) temp: "<<cm.Teff_h[num]<<"\t mass: "<<cm.mass_h[num]<<"\t counter: "<<num<<endl;  cin>>yye;}}
 
+
+
     Mab[4]=(Mab[2]+Mab[3]+Mab[4])/3.0;//absolute magnitude in W149: (K+H+J)/3
     ex.Aks=Interpol(Ds,ex);///extinction in Ks-band
     Av=ex.Aks*Avks;
@@ -514,9 +527,12 @@ else if (rf<=(s.rho_disk[nums]+s.rho_bulge[nums]+s.rho_ThD[nums]+ s.rho_halo[num
     Ai[i]=fabs(Av*AlAv[i])+RandN(sigma[i], 1.5); //extinction in other bands
     if(Ai[i]<0.0) Ai[i]=0.0;
     Map[i]=Mab[i]+5.0*log10(Ds*100.0)+Ai[i];
-    if(s.Nblend[i]>=k){s.Fluxb[i]+=fabs(pow(10.0,-0.4*Map[i]));}}
-    if(k==1){for(int i=0; i<M;  ++i){s.Ai[i]=Ai[i]; s.Map[i]=Map[i]; s.Mab[i]= Mab[i];}}
+    if(s.Nblend[i]>=k){ s.Fluxb[i]+=fabs(pow(10.0,-0.4*Map[i])); }}
+    if(k==1){for(int i=0; i<M; ++i){s.Ai[i]=Ai[i]; s.Map[i]=Map[i]; s.Mab[i]= Mab[i];}}
     }///loop over the stars
+    
+    
+    
 
     for(int i=0; i<M; ++i){
     s.blend[i]=double(pow(10.0,-0.4*s.Map[i])/s.Fluxb[i]);
@@ -577,8 +593,7 @@ void func_lens(lens & l, source & s, CMD & cm, extinc & ex)
     else {cout<<"randflag: "<<randflag<<"\t rho_star0: "<<s.Rostar0[l.numl]<<endl;  int ye; cin>>ye;}
  
 ///HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
-    l.semi=RandR(-2.0,1.5);  
-    l.semi=pow(10.0,l.semi)*AU;//[m] 
+    
     do{
     l.q=RandR(0.0,1.0); 
     fr =RandR(0.0,1.0);  
@@ -590,24 +605,30 @@ void func_lens(lens & l, source & s, CMD & cm, extinc & ex)
     MlJ= l.Ml/Mjupiter; 
     MlS= l.Ml/Msun; 
    
-    l.t0= RandR(0.0,Tobs);  
+   
+   
+    l.t0= RandR(10.0 , Tobs-10.0);  
     l.u0= RandR(0.0, 1.0);
     l.ksi=RandR(0.0, 2.0*M_PI);
+    
     l.xls=double(l.Dl/s.Ds);
     l.RE=sqrt(4.0*G*(l.Ml+l.Mp)*s.Ds*KP)/velocity;//meter
     l.RE=l.RE*sqrt(l.xls*(1.0-l.xls));///meter
     vrel(s,l);
     l.tE=l.RE/(l.Vt*1000.0*3600.0*24.0);///in day
+    
+    
     s.ros=double(s.Rstar*Rsun*l.xls/l.RE);
     l.mul=l.Vt*1000.0*3600.0*24.0/(l.Dl*AU);///mas/days
     if(l.u0==0.0) l.u0=1.0e-5; 
+    
     l.tetE= double(l.RE/AU/l.Dl);///marcs 
     s.mus1= double(s.SV_n1- s.VSun_n1)*1000.0*3600.0*24.0/(s.Ds*AU);///mas/days
     s.mus2= double(s.SV_n2- s.VSun_n2)*1000.0*3600.0*24.0/(s.Ds*AU);///mas/days
     s.mul1= double(s.LV_n1- s.VSun_n1)*1000.0*3600.0*24.0/(l.Dl*AU);///mas/days
     s.mul2= double(s.LV_n2- s.VSun_n2)*1000.0*3600.0*24.0/(l.Dl*AU);///mas/days 
     l.piE=double(1.0/l.Dl -1.0/s.Ds)/l.tetE; 
-    cosi=RandR(0.0,0.9999999);
+    cosi=RandR(0.01,0.9999999);
     l.inc=acos(cosi)*180.0/M_PI;//degree
     l.dis=l.semi*sqrt(1.0-cosi*cosi)/l.RE;
     l.peri= 2.0*M_PI*pow(l.semi,1.5)/sqrt(G*(l.Ml+l.Mp))/(3600.0*24.0);//days 
@@ -624,8 +645,8 @@ void func_lens(lens & l, source & s, CMD & cm, extinc & ex)
     else if(l.dis>=dwide) l.con=3; 
     else                  l.con=2;   
     
-    if(dwide<dclos or dwide==dclos or dclos<0.0 or l.peri<0.0 or  l.dis<=0.0 or l.q<0.0000000001 or l.semi<double(0.01*AU) 
-     or l.semi>double(1000.0*AU)){
+    if(dwide<dclos or dwide==dclos or dclos<0.0 or l.peri<0.0 or  l.dis<=0.0 or l.q<0.0000000001 or l.semi<double(0.0001*AU) 
+     or l.semi>double(10000.0*AU) ){
     cout<<"Error dwide:    "<<dwide<<"\t dclose:  "<<dclos<<endl;
     cout<<"peri:  "<<l.peri<<"\t dis:  "<<l.dis<<"\t q:  "<<l.q<<endl;
     int uue ; cin>>uue; }
